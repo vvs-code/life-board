@@ -1,0 +1,13 @@
+# Фактор III: адрес бэкенда подставляется из окружения (BACKEND_URL) при старте контейнера.
+server {
+  listen ${PORT};
+
+  location /api/ {
+    proxy_pass ${BACKEND_URL};
+  }
+
+  location / {
+    root /usr/share/nginx/html;
+    try_files $uri /index.html;
+  }
+}

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Life Board</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 860px; margin: 32px auto; padding: 0 16px; color: #1c1c1a; background: #f6f6f4; }
+    h1 { font-size: 22px; } h2 { font-size: 16px; margin-top: 28px; }
+    form { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 16px; }
+    input, select, button { font: inherit; padding: 6px 10px; border: 1px solid #d3d2cd; border-radius: 6px; background: #fff; }
+    button { cursor: pointer; }
+    table { width: 100%; border-collapse: collapse; background: #fff; }
+    td, th { border-bottom: 1px solid #e4e3df; padding: 8px; text-align: left; font-size: 14px; }
+    .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+  </style>
+</head>
+<body>
+  <h1>Life Board</h1>
+
+  <h2>Разделы</h2>
+  <form id="space-form">
+    <input name="name" placeholder="Название раздела" required>
+    <input name="color" type="color" value="#3B5BD9">
+    <button>Добавить раздел</button>
+  </form>
+  <table><tbody id="spaces"></tbody></table>
+
+  <h2>Таски</h2>
+  <form id="task-form">
+    <select name="space_id" id="space-select" required></select>
+    <input name="title" placeholder="Что сделать" required>
+    <input name="deadline" type="date">
+    <select name="priority">
+      <option value="high">высокий</option>
+      <option value="mid" selected>средний</option>
+      <option value="low">низкий</option>
+      <option value="zero">нулевой</option>
+    </select>
+    <button>Добавить таску</button>
+  </form>
+  <table>
+    <thead><tr><th>Раздел</th><th>Таска</th><th>Дедлайн</th><th>Приоритет</th><th>Статус</th><th></th></tr></thead>
+    <tbody id="tasks"></tbody>
+  </table>
+
+  <script src="app.js"></script>
+</body>
+</html>
