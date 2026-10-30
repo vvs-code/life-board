@@ -1,0 +1,36 @@
+{
+  "name": "@lifeboard/backend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "nest start --watch",
+    "build": "nest build",
+    "start": "node dist/main.js",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@lifeboard/agent": "workspace:*",
+    "@lifeboard/common": "workspace:*",
+    "@lifeboard/db": "workspace:*",
+    "@lifeboard/nest-common": "workspace:*",
+    "@nestjs/common": "^11.1.0",
+    "@nestjs/core": "^11.1.0",
+    "@nestjs/platform-express": "^11.1.0",
+    "@nestjs/platform-ws": "^11.1.0",
+    "@nestjs/websockets": "^11.1.0",
+    "@trpc/server": "^11.5.0",
+    "argon2": "^0.44.0",
+    "cookie-parser": "^1.4.7",
+    "rxjs": "^7.8.0",
+    "superjson": "^2.2.0",
+    "ws": "^8.18.0",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.0",
+    "@types/cookie-parser": "^1.4.9",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.18.0"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "id": "browser",
+  "name": "Браузер",
+  "description": "Открывает страницы и ищет на них новые дедлайны, например в личном кабинете вуза",
+  "transport": "stdio",
+  "command": "node",
+  "args": ["dist/index.js"],
+  "settings": [
+    { "key": "allowedHosts", "label": "Разрешённые сайты", "type": "list", "required": true },
+    { "key": "login", "label": "Логин в личном кабинете", "type": "string" },
+    { "key": "password", "label": "Пароль", "type": "secret" }
+  ]
+}

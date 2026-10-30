@@ -1,0 +1,259 @@
+// Модель данных Life Board (ARCHITECTURE, раздел 8).
+// Тенантности нет: один пользователь на установку, owner_id нигде не заводим.
+// Все даты в UTC, тайм-зона владельца хранится в настройках (NFR-12).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Priority {
+  zero
+  low
+  mid
+  high
+}
+
+enum TaskStatus {
+  todo
+  in_progress
+  done
+}
+
+enum SlotStatus {
+  proposed // пришёл в календарь приглашением, ответа ещё нет
+  confirmed // владелец нажал «Принять»; система такой слот не меняет (BR-2)
+}
+
+enum ChatLevel {
+  core
+  space
+  task
+}
+
+enum AgentRunKind {
+  chat
+  proactive
+  machine
+}
+
+enum AgentRunStatus {
+  queued
+  running
+  awaiting_approval
+  done
+  failed
+  cancelled
+  interrupted
+}
+
+/// Настройки установки: одна строка.
+model Settings {
+  id                        Int      @id @default(1)
+  timezone                  String   @default("Europe/Moscow")
+  week                      Json // 7 дней: окно и норма (FR-19)
+  lowPriorityReserveMinutes Int      @default(60)
+  staleAfterDays            Int      @default(5)
+  digestLimit               Int      @default(3)
+  digestTime                String   @default("09:00")
+  persistence               String   @default("normal")
+  runBudgetUsd              Decimal  @default(0.2)
+  telegramChatId            BigInt? // привязанный чат владельца (FR-7)
+  updatedAt                 DateTime @updatedAt
+}
+
+/// Исключение рабочего окна на конкретную дату.
+model DayOverride {
+  date        DateTime @id @db.Date
+  enabled     Boolean
+  from        String
+  to          String
+  normMinutes Int
+}
+
+model Space {
+  id             String        @id @default(uuid())
+  name           String
+  color          String
+  isSystem       Boolean       @default(false) // «Жизнь» удалить нельзя (FR-10)
+  eventsCalendar String? // URL календаря «[Раздел]» на CalDAV-сервере
+  tasksCalendar  String? // URL календаря «[Раздел]: Таски»
+  createdAt      DateTime      @default(now())
+  tasks          Task[]
+  events         Event[]
+  chats          Chat[]
+  modules        ModuleSpace[]
+}
+
+model Task {
+  id             String       @id @default(uuid())
+  spaceId        String
+  space          Space        @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  title          String
+  description    String       @default("")
+  deadline       DateTime?
+  priority       Priority     @default(mid)
+  status         TaskStatus   @default(todo)
+  firstStep      String?
+  estimateMin    Int?
+  estimateSource String? // ai | owner: ручную правку модель не перезаписывает (FR-21)
+  snoozedUntil   DateTime?
+  lastMovedAt    DateTime     @default(now())
+  createdVia     String       @default("web") // web | telegram: для метрики M-3
+  createdAt      DateTime     @default(now())
+  slots          Slot[]
+  chats          Chat[]
+  timeActual     TimeActual[]
+
+  @@index([spaceId, status])
+  @@index([deadline])
+}
+
+model Slot {
+  id          String     @id @default(uuid())
+  taskId      String
+  task        Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  startsAt    DateTime
+  endsAt      DateTime
+  status      SlotStatus @default(proposed)
+  externalUid String     @unique // UID события в iCalendar
+  etag        String?
+  updatedAt   DateTime   @updatedAt
+}
+
+model Event {
+  id          String    @id @default(uuid())
+  spaceId     String
+  space       Space     @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  title       String
+  startsAt    DateTime
+  endsAt      DateTime
+  externalUid String    @unique
+  etag        String?
+  dirty       Boolean   @default(false) // изменение ещё не отправлено на CalDAV-сервер (FR-18)
+  deletedAt   DateTime?
+  updatedAt   DateTime  @updatedAt
+}
+
+model CalendarSync {
+  calendarUrl String    @id
+  syncToken   String? // sync-collection: без полного перечитывания после рестарта
+  syncedAt    DateTime?
+}
+
+model Chat {
+  id         String     @id @default(uuid())
+  level      ChatLevel
+  spaceId    String?
+  space      Space?     @relation(fields: [spaceId], references: [id], onDelete: SetNull)
+  taskId     String?
+  task       Task?      @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  title      String
+  isTelegram Boolean    @default(false) // один долгоживущий общий чат для бота (FR-39)
+  sessionId  String? // сессия Claude Agent SDK
+  archived   Boolean    @default(false)
+  createdAt  DateTime   @default(now())
+  messages   Message[]
+  runs       AgentRun[]
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  chatId    String
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  role      String // user | assistant | tool
+  content   Json
+  toolName  String?
+  createdAt DateTime @default(now())
+
+  @@index([chatId, createdAt])
+}
+
+/// Память ассистента: предпочтения и выводы, не доменные данные. После MVP.
+model MemoryNote {
+  id           String    @id @default(uuid())
+  level        ChatLevel
+  scopeId      String?
+  text         String
+  sourceChatId String?
+  createdAt    DateTime  @default(now())
+}
+
+model AgentRun {
+  id          String         @id @default(uuid())
+  kind        AgentRunKind
+  status      AgentRunStatus @default(queued)
+  chatId      String?
+  chat        Chat?          @relation(fields: [chatId], references: [id], onDelete: SetNull)
+  machineId   String?
+  machine     Machine?       @relation(fields: [machineId], references: [id], onDelete: SetNull)
+  prompt      String
+  costUsd     Decimal        @default(0)
+  heartbeatAt DateTime?
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  createdAt   DateTime       @default(now())
+
+  @@index([status, kind, createdAt]) // разбор очереди через SKIP LOCKED
+}
+
+/// Встроенный модуль из каталога modules/ или внешний MCP-сервер. После MVP.
+model ModuleInstance {
+  id         String        @id @default(uuid())
+  moduleId   String // id из module.json или "external"
+  enabled    Boolean       @default(false)
+  settings   Json
+  secretsEnc Bytes? // зашифрованы ключом из окружения (FR-8)
+  spaces     ModuleSpace[]
+}
+
+model ModuleSpace {
+  moduleId String
+  module   ModuleInstance @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  spaceId  String
+  space    Space          @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  @@id([moduleId, spaceId])
+}
+
+/// Рабочая машина владельца с раннером. После MVP.
+model Machine {
+  id        String     @id @default(uuid())
+  name      String
+  tokenHash String     @unique
+  capacity  Int        @default(1)
+  lastSeen  DateTime?
+  revokedAt DateTime?
+  runs      AgentRun[]
+}
+
+model TimeActual {
+  id      String   @id @default(uuid())
+  taskId  String
+  task    Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  minutes Int
+  at      DateTime @default(now())
+}
+
+model Secret {
+  key       String   @id // model_api_key, telegram_token, caldav_password
+  valueEnc  Bytes
+  updatedAt DateTime @updatedAt
+}
+
+model Session {
+  id        String   @id // непрозрачный токен в httpOnly-cookie; таблица позволяет «выйти везде» (FR-5)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}
+
+model Owner {
+  id           Int       @id @default(1)
+  passwordHash String // argon2id
+  failedLogins Int       @default(0)
+  lockedUntil  DateTime?
+}

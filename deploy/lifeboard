@@ -1,0 +1,48 @@
+#!/usr/bin/env sh
+# Эксплуатация одной командой (ARCHITECTURE, раздел 10). .env меняется только этой командой.
+set -eu
+cd "${LIFEBOARD_DIR:-/opt/lifeboard}"
+
+set_env() { sed -i.bak "s|^$1=.*|$1=$2|" .env && rm -f .env.bak; }
+
+case "${1:-help}" in
+  update)
+    # дамп → pull → миграции при старте workers → перезапуск
+    latest="$(curl -fsSL https://api.github.com/repos/vvs-code/life-board/releases/latest | sed -n 's/.*"tag_name": "\(.*\)".*/\1/p')"
+    current="$(grep '^LIFEBOARD_VERSION=' .env | cut -d= -f2)"
+    [ "$latest" = "$current" ] && { echo "уже последняя версия $current"; exit 0; }
+    "$0" backup
+    echo "$current" > .previous-version
+    set_env LIFEBOARD_VERSION "$latest"
+    docker compose pull && docker compose up -d
+    ;;
+  rollback)
+    # образ и дамп возвращаются вместе: откат образа сам по себе не откатывает схему
+    previous="$(cat .previous-version)"
+    dump="$(ls -t backups/pre-migrate-*.sql | head -1)"
+    set_env LIFEBOARD_VERSION "$previous"
+    docker compose up -d postgres
+    docker compose exec -T postgres psql -U lifeboard -d lifeboard < "$dump"
+    docker compose up -d
+    ;;
+  backup)
+    docker compose exec -T postgres pg_dump -U lifeboard lifeboard > "backups/manual-$(date +%Y%m%d-%H%M%S).sql"
+    ;;
+  status)
+    grep '^LIFEBOARD_VERSION=' .env
+    docker compose ps
+    ;;
+  logs)
+    docker compose logs -f --tail=100
+    ;;
+  set-domain)
+    set_env DOMAIN "$2" && set_env PUBLIC_URL "https://$2"
+    docker compose up -d caddy backend
+    ;;
+  reset-password)
+    docker compose exec workers node workers/dist/cli/reset-password.js
+    ;;
+  *)
+    echo "lifeboard update | rollback | backup | status | logs | set-domain <домен> | reset-password"
+    ;;
+esac

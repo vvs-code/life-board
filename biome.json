@@ -1,0 +1,7 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.2.0/schema.json",
+  "files": { "includes": ["**", "!**/node_modules", "!**/dist", "!**/.next", "!mvp/**"] },
+  "formatter": { "indentStyle": "space", "indentWidth": 4, "lineWidth": 120 },
+  "javascript": { "formatter": { "quoteStyle": "single", "bracketSpacing": false } },
+  "linter": { "rules": { "suspicious": { "noExplicitAny": "error" } } }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "@lifeboard/nest-common",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/index.ts",
+  "dependencies": {
+    "@lifeboard/db": "workspace:*",
+    "@lifeboard/common": "workspace:*",
+    "@nestjs/common": "^11.1.0",
+    "@nestjs/config": "^4.0.0",
+    "pg": "^8.16.0",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.15.0",
+    "@types/node": "^22.18.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "id": "tracker",
+  "name": "Рабочий трекер",
+  "description": "Задачи и пулл-реквесты из рабочего трекера",
+  "transport": "stdio",
+  "command": "node",
+  "args": ["dist/index.js"],
+  "settings": [
+    { "key": "baseUrl", "label": "Адрес трекера", "type": "url", "required": true },
+    { "key": "token", "label": "Токен", "type": "secret", "required": true }
+  ]
+}

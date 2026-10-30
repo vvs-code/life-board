@@ -1,0 +1,70 @@
+# Целевой стек Life Board (ARCHITECTURE, разделы 3 и 10).
+# Наружу торчит только Caddy, Postgres во внутренней сети. .env пишет установщик, руками его не правят.
+x-logging: &logging
+  driver: local
+  options: { max-size: "20m", max-file: "5" }
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    ports: ["80:80", "443:443"]
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on: [frontend, backend]
+    restart: unless-stopped
+    logging: *logging
+
+  frontend:
+    image: ghcr.io/vvs-code/life-board-frontend:${LIFEBOARD_VERSION}
+    environment:
+      BACKEND_INTERNAL_URL: http://backend:3000
+    restart: unless-stopped
+    logging: *logging
+
+  # backend и workers — один образ, разные точки входа.
+  backend:
+    image: ghcr.io/vvs-code/life-board-server:${LIFEBOARD_VERSION}
+    command: ["node", "backend/dist/main.js"]
+    env_file: .env
+    depends_on:
+      postgres: { condition: service_healthy }
+      workers: { condition: service_started }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/readyz || exit 1"]
+      interval: 10s
+    restart: unless-stopped
+    logging: *logging
+
+  workers:
+    image: ghcr.io/vvs-code/life-board-server:${LIFEBOARD_VERSION}
+    command: ["node", "workers/dist/main.js"] # применяет миграции при старте после дампа
+    env_file: .env
+    volumes:
+      - backups:/backups
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: unless-stopped
+    logging: *logging
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: lifeboard
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: lifeboard
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lifeboard -d lifeboard"]
+      interval: 3s
+      retries: 20
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  pgdata:
+  backups:
+  caddy-data:

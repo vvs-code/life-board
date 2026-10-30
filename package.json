@@ -1,0 +1,19 @@
+{
+  "name": "life-board",
+  "private": true,
+  "packageManager": "pnpm@9.12.0",
+  "scripts": {
+    "dev": "pnpm --parallel --filter ./frontend --filter ./backend --filter ./workers dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "lint": "biome check .",
+    "db:generate": "pnpm --filter @lifeboard/db generate",
+    "db:migrate": "pnpm --filter @lifeboard/db migrate"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.2.0",
+    "typescript": "^5.9.0",
+    "@types/node": "^22.18.0"
+  }
+}

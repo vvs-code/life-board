@@ -1,0 +1,29 @@
+{
+  "name": "@lifeboard/frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@gravity-ui/uikit": "^7.20.0",
+    "@lifeboard/common": "workspace:*",
+    "@tanstack/react-query": "^5.87.0",
+    "@trpc/client": "^11.5.0",
+    "@trpc/react-query": "^11.5.0",
+    "next": "^15.5.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "superjson": "^2.2.0"
+  },
+  "devDependencies": {
+    "@lifeboard/backend": "workspace:*",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@types/node": "^22.18.0",
+    "typescript": "^5.9.0"
+  }
+}

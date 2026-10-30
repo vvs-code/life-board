@@ -1,0 +1,20 @@
+# Авто-TLS: сертификат выпускается и продлевается сам (NFR-7). Браузер ходит в один origin.
+{$DOMAIN} {
+    handle /trpc/* {
+        reverse_proxy backend:3000
+    }
+    handle /events/* {
+        reverse_proxy backend:3000 {
+            flush_interval -1
+        }
+    }
+    handle /runner {
+        reverse_proxy backend:3000
+    }
+    handle /livez {
+        reverse_proxy backend:3000
+    }
+    handle {
+        reverse_proxy frontend:3000
+    }
+}
