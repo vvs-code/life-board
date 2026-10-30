@@ -50,7 +50,7 @@ document.body.addEventListener('click', async (e) => {
   if (delTask) await api(`/tasks/${delTask}`, { method: 'DELETE' });
   if (renameSpace) {
     const name = prompt('Новое название');
-    if (name) await api(`/spaces/${renameSpace}`, { method: 'PUT', body: JSON.stringify({ name }) });
+    if (name) await api(`/spaces/${renameSpace}`, { method: 'PATCH', body: JSON.stringify({ name }) });
   }
   if (delSpace || delTask || renameSpace) render();
 });
@@ -58,7 +58,7 @@ document.body.addEventListener('click', async (e) => {
 document.body.addEventListener('change', async (e) => {
   const id = e.target.dataset.status;
   if (id) {
-    await api(`/tasks/${id}`, { method: 'PUT', body: JSON.stringify({ status: e.target.value }) });
+    await api(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ status: e.target.value }) });
     render();
   }
 });

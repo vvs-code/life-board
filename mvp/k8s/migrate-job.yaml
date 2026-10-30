@@ -1,0 +1,26 @@
+# Фактор XII: миграции — разовый процесс из того же образа, что и backend.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrate
+  labels: { app: migrate }
+spec:
+  backoffLimit: 4
+  template:
+    metadata:
+      labels: { app: migrate }
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:16-alpine
+          command: ["sh", "-c", "until pg_isready -h postgres -p 5432; do echo waiting for postgres; sleep 2; done"]
+      containers:
+        - name: migrate
+          image: lifeboard-backend:0.2.0
+          imagePullPolicy: Never
+          command: ["node", "src/migrate.js"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef: { name: lifeboard-db, key: DATABASE_URL }

@@ -6,4 +6,4 @@ COPY src ./src
 COPY migrations ./migrations
 USER node
 EXPOSE 3000
-CMD ["node", "src/index.js"]
+CMD ["node", "src/server.js"]
